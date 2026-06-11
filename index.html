@@ -477,7 +477,56 @@
     margin-top: 1rem;
   }
 
-  @media (max-width: 480px) {
+  /* ── USER BAR ── */
+  #user-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.5rem 1.5rem;
+    background: var(--ink);
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+  .bar-username { font-size: 12px; color: var(--gold-light); font-weight: 600; margin-right: 0.25rem; }
+  .bar-btn {
+    font-size: 11px; font-weight: 600; padding: 0.3rem 0.75rem;
+    border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);
+    background: transparent; color: rgba(247,243,236,0.7);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .bar-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+  .admin-btn { border-color: var(--gold-light); color: var(--gold-light); }
+  .admin-btn:hover { background: var(--gold-light); color: var(--ink); }
+
+  /* ── AUTH MODAL ── */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 1rem;
+  }
+  .modal-box {
+    background: var(--parchment); border-radius: 10px;
+    padding: 2rem 1.75rem; width: 100%; max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-logo { font-size: 2rem; text-align: center; margin-bottom: 0.5rem; }
+  .modal-title { font-family: 'EB Garamond', serif; font-size: 1.4rem; font-weight: 600; text-align: center; color: var(--ink); margin-bottom: 0.2rem; }
+  .modal-sub { font-family: 'EB Garamond', serif; font-style: italic; font-size: 0.9rem; color: var(--stone); text-align: center; margin-bottom: 1.25rem; }
+  .auth-tabs { display: flex; border-bottom: 2px solid var(--warm-mid); margin-bottom: 1.25rem; }
+  .auth-tab { flex: 1; padding: 0.5rem; border: none; background: transparent; font-size: 13px; font-weight: 600; color: var(--stone); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+  .auth-tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+  .auth-pane { display: none; }
+  .auth-pane.active { display: block; }
+  .auth-label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--stone); margin-bottom: 0.3rem; margin-top: 0.75rem; }
+  .auth-input { width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid var(--warm-mid); border-radius: 4px; font-size: 14px; font-family: 'Inter', sans-serif; background: white; color: var(--ink); outline: none; transition: border-color 0.15s; }
+  .auth-input:focus { border-color: var(--gold); }
+  .auth-error { font-size: 12px; color: var(--ember); margin-top: 0.4rem; min-height: 1rem; }
+  .auth-btn { width: 100%; margin-top: 1rem; padding: 0.65rem; background: var(--ink); color: var(--parchment); border: none; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .auth-btn:hover { background: #2e2820; }
+  .admin-user-row { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--warm-mid); gap: 0.5rem; flex-wrap: wrap; }
+  .admin-uname { font-size: 13px; font-weight: 600; color: var(--ink); min-width: 80px; }
+
+    @media (max-width: 480px) {
     main { padding: 0.75rem; }
     .chapter-header { padding: 0.85rem 0.9rem; }
     .chapter-body { padding: 0 0.9rem 1rem; }
@@ -493,6 +542,8 @@
   <div class="subtitle">Nathan Busenitz — editor general</div>
   <div class="meta">Seguimiento de reflexiones por capítulo</div>
 </header>
+
+<div id="user-bar"></div>
 
 <div class="progress-bar-wrap">
   <div class="progress-track">
@@ -522,6 +573,9 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
+// ── ADMIN ────────────────────────────────────────────────────────────────────
+const ADMIN_PASS = '53930522';
+
 // ── DATA ─────────────────────────────────────────────────────────────────────
 
 const CHAPTERS = [
@@ -817,6 +871,7 @@ const CHAPTERS = [
   }
 ];
 
+
 // ── FIREBASE ─────────────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyCb3sxxkCkv2J7liZ7UMBXA-Yrj9Es3dWc",
@@ -832,6 +887,76 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const ROOT = 'hombre_verdadero';
+const USERS_ROOT = 'hv_users';
+
+// ── SESSION ───────────────────────────────────────────────────────────────────
+let currentUser = null;
+
+function hashPass(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) { h = (Math.imul(31, h) + str.charCodeAt(i)) | 0; }
+  return h.toString(16);
+}
+
+function loadSession() {
+  try {
+    const s = sessionStorage.getItem('hv_session');
+    if (s) currentUser = JSON.parse(s);
+  } catch {}
+}
+
+function saveSession(user) {
+  currentUser = user;
+  sessionStorage.setItem('hv_session', JSON.stringify(user));
+}
+
+function clearSession() {
+  currentUser = null;
+  sessionStorage.removeItem('hv_session');
+}
+
+function isAdmin() {
+  return currentUser && currentUser.isAdmin;
+}
+
+// ── USER MANAGEMENT ───────────────────────────────────────────────────────────
+let usersCache = {};
+
+function startUsersListener() {
+  db.ref(USERS_ROOT).on('value', snap => {
+    usersCache = snap.val() || {};
+    if (document.getElementById('admin-panel')) renderAdminPanel();
+  });
+}
+
+async function registerUser(username, password) {
+  const key = username.toLowerCase().trim();
+  if (usersCache[key]) return { ok: false, msg: 'Ese nombre ya está registrado.' };
+  await db.ref(USERS_ROOT + '/' + key).set({ username, passHash: hashPass(password) });
+  return { ok: true };
+}
+
+function loginUser(username, password) {
+  if (username.trim() === 'Administrador' && password === ADMIN_PASS) {
+    return { ok: true, user: { username: 'Administrador', isAdmin: true } };
+  }
+  const key = username.toLowerCase().trim();
+  const record = usersCache[key];
+  if (!record) return { ok: false, msg: 'Usuario no encontrado.' };
+  if (record.passHash !== hashPass(password)) return { ok: false, msg: 'Clave incorrecta.' };
+  return { ok: true, user: { username: record.username, isAdmin: false } };
+}
+
+async function resetUserPassword(username, newPassword) {
+  const key = username.toLowerCase().trim();
+  if (!usersCache[key]) return { ok: false, msg: 'Usuario no encontrado.' };
+  await db.ref(USERS_ROOT + '/' + key + '/passHash').set(hashPass(newPassword));
+  return { ok: true };
+}
+
+async function deleteUser(username) {
+  await db.ref(USERS_ROOT + '/' + username.toLowerCase().trim()).remove();
+}
 
 // ── STATE ────────────────────────────────────────────────────────────────────
 let state = {};
@@ -842,22 +967,20 @@ function getChapterState(id) {
 }
 
 function saveChapterCompleted(chapterId, value) {
-  db.ref(`${ROOT}/${chapterId}/completed`).set(value);
+  db.ref(ROOT + '/' + chapterId + '/completed').set(value);
 }
 
 function saveReflection(chapterId, reflection) {
-  db.ref(`${ROOT}/${chapterId}/reflections/${reflection.id}`).set(reflection);
+  db.ref(ROOT + '/' + chapterId + '/reflections/' + reflection.id).set(reflection);
 }
 
 function deleteReflection(chapterId, reflectionId) {
-  db.ref(`${ROOT}/${chapterId}/reflections/${reflectionId}`).remove();
+  db.ref(ROOT + '/' + chapterId + '/reflections/' + reflectionId).remove();
 }
 
-// Escuchar cambios en tiempo real
 function startListening() {
   db.ref(ROOT).on('value', snapshot => {
     const data = snapshot.val() || {};
-    // Normalizar: reflections como array
     state = {};
     for (const chId in data) {
       const ch = data[chId];
@@ -872,10 +995,172 @@ function startListening() {
   });
 }
 
+// ── AUTH MODAL ────────────────────────────────────────────────────────────────
+function showAuthModal() {
+  const existing = document.getElementById('auth-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'auth-modal';
+  modal.innerHTML = `
+    <div class="modal-backdrop">
+      <div class="modal-box">
+        <div class="modal-logo">\u{1F4D6}</div>
+        <h2 class="modal-title">Hombre Verdadero</h2>
+        <p class="modal-sub">Grupo de Lectura y Oraci\u00f3n</p>
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tab-login">Ingresar</button>
+          <button class="auth-tab" id="tab-register">Registrarse</button>
+        </div>
+        <div id="pane-login" class="auth-pane active">
+          <label class="auth-label">Nombre</label>
+          <input id="login-user" type="text" placeholder="Tu nombre" autocomplete="off" class="auth-input">
+          <label class="auth-label">Clave</label>
+          <input id="login-pass" type="password" placeholder="Tu clave" class="auth-input">
+          <div id="login-error" class="auth-error"></div>
+          <button id="login-btn" class="auth-btn">Ingresar</button>
+        </div>
+        <div id="pane-register" class="auth-pane">
+          <label class="auth-label">Elige tu nombre</label>
+          <input id="reg-user" type="text" placeholder="Ej. Juan, Marcos\u2026" autocomplete="off" class="auth-input">
+          <label class="auth-label">Elige una clave</label>
+          <input id="reg-pass" type="password" placeholder="Clave secreta" class="auth-input">
+          <label class="auth-label">Confirma tu clave</label>
+          <input id="reg-pass2" type="password" placeholder="Repite la clave" class="auth-input">
+          <div id="reg-error" class="auth-error"></div>
+          <button id="reg-btn" class="auth-btn">Crear cuenta</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('tab-login').addEventListener('click', () => switchAuthTab('login'));
+  document.getElementById('tab-register').addEventListener('click', () => switchAuthTab('register'));
+
+  document.getElementById('login-btn').addEventListener('click', () => {
+    const u = document.getElementById('login-user').value.trim();
+    const p = document.getElementById('login-pass').value;
+    if (!u || !p) { document.getElementById('login-error').textContent = 'Completa todos los campos.'; return; }
+    const res = loginUser(u, p);
+    if (!res.ok) { document.getElementById('login-error').textContent = res.msg; return; }
+    saveSession(res.user);
+    modal.remove();
+    updateUserBar();
+    renderAll();
+  });
+
+  document.getElementById('login-pass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('login-btn').click();
+  });
+
+  document.getElementById('reg-btn').addEventListener('click', async () => {
+    const u = document.getElementById('reg-user').value.trim();
+    const p = document.getElementById('reg-pass').value;
+    const p2 = document.getElementById('reg-pass2').value;
+    const errEl = document.getElementById('reg-error');
+    if (!u || !p) { errEl.textContent = 'Completa todos los campos.'; return; }
+    if (p !== p2) { errEl.textContent = 'Las claves no coinciden.'; return; }
+    if (p.length < 4) { errEl.textContent = 'La clave debe tener al menos 4 caracteres.'; return; }
+    if (u.toLowerCase() === 'administrador') { errEl.textContent = 'Ese nombre no est\u00e1 disponible.'; return; }
+    errEl.textContent = 'Registrando\u2026';
+    const res = await registerUser(u, p);
+    if (!res.ok) { errEl.textContent = res.msg; return; }
+    const loginRes = loginUser(u, p);
+    saveSession(loginRes.user);
+    modal.remove();
+    updateUserBar();
+    renderAll();
+  });
+}
+
+function switchAuthTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+  document.getElementById('pane-login').classList.toggle('active', tab === 'login');
+  document.getElementById('pane-register').classList.toggle('active', tab === 'register');
+}
+
+function updateUserBar() {
+  const bar = document.getElementById('user-bar');
+  if (!bar) return;
+  if (!currentUser) {
+    bar.innerHTML = '<button id="btn-login-bar" class="bar-btn">Iniciar sesi\u00f3n</button>';
+    document.getElementById('btn-login-bar').addEventListener('click', showAuthModal);
+  } else {
+    bar.innerHTML =
+      '<span class="bar-username">' + escHtml(currentUser.username) + '</span>' +
+      (isAdmin() ? '<button class="bar-btn admin-btn" id="btn-admin">Panel admin</button>' : '') +
+      '<button class="bar-btn" id="btn-logout">Cerrar sesi\u00f3n</button>';
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      clearSession(); updateUserBar(); renderAll();
+    });
+    if (isAdmin()) {
+      document.getElementById('btn-admin').addEventListener('click', showAdminPanel);
+    }
+  }
+}
+
+// ── ADMIN PANEL ───────────────────────────────────────────────────────────────
+function showAdminPanel() {
+  const existing = document.getElementById('admin-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'admin-modal';
+  modal.innerHTML =
+    '<div class="modal-backdrop"><div class="modal-box" style="max-width:500px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
+    '<h2 class="modal-title" style="margin:0">Panel de administrador</h2>' +
+    '<button id="close-admin" style="background:none;border:none;font-size:20px;cursor:pointer;color:#888">\u2715</button>' +
+    '</div><div id="admin-panel"></div></div></div>';
+  document.body.appendChild(modal);
+  document.getElementById('close-admin').addEventListener('click', () => modal.remove());
+  renderAdminPanel();
+}
+
+function renderAdminPanel() {
+  const panel = document.getElementById('admin-panel');
+  if (!panel) return;
+  const users = Object.values(usersCache);
+  if (users.length === 0) {
+    panel.innerHTML = '<p style="color:#888;font-size:13px">No hay usuarios registrados a\u00fan.</p>';
+    return;
+  }
+  panel.innerHTML = '<p style="font-size:12px;color:#888;margin-bottom:0.75rem">' + users.length + ' usuario(s) registrado(s)</p>' +
+    users.map(u =>
+      '<div class="admin-user-row" data-uname="' + escHtml(u.username) + '">' +
+      '<span class="admin-uname">' + escHtml(u.username) + '</span>' +
+      '<div style="display:flex;gap:6px;align-items:center">' +
+      '<input type="text" placeholder="Nueva clave" class="admin-newpass auth-input" style="width:120px;padding:4px 8px;font-size:12px">' +
+      '<button class="admin-reset-btn bar-btn" style="font-size:11px">Resetear</button>' +
+      '<button class="admin-delete-btn bar-btn" style="font-size:11px;color:#a32d2d;border-color:#a32d2d">Eliminar</button>' +
+      '</div></div>'
+    ).join('');
+
+  panel.querySelectorAll('.admin-reset-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('.admin-user-row');
+      const uname = row.dataset.uname;
+      const newpass = row.querySelector('.admin-newpass').value.trim();
+      if (!newpass || newpass.length < 4) { alert('La nueva clave debe tener al menos 4 caracteres.'); return; }
+      const res = await resetUserPassword(uname, newpass);
+      if (res.ok) { alert('Clave de ' + uname + ' actualizada.'); row.querySelector('.admin-newpass').value = ''; }
+      else alert(res.msg);
+    });
+  });
+
+  panel.querySelectorAll('.admin-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('.admin-user-row');
+      const uname = row.dataset.uname;
+      if (!confirm('\u00bfEliminar al usuario "' + uname + '"? Esto no elimina sus reflexiones.')) return;
+      await deleteUser(uname);
+    });
+  });
+}
+
 // ── RENDER ───────────────────────────────────────────────────────────────────
 let currentFilter = 'all';
 let openChapters = new Set();
-let activeTab = {}; // chapterId -> tab name
+let activeTab = {};
 
 function renderAll() {
   const container = document.getElementById('chapters-container');
@@ -885,13 +1170,11 @@ function renderAll() {
     if (currentFilter === 'pending') return !s.completed;
     return true;
   });
-
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">📖</div><p>No hay capítulos en esta categoría aún.</p></div>`;
+    container.innerHTML = '<div class="empty-state"><div class="icon">\u{1F4D6}</div><p>No hay cap\u00edtulos en esta categor\u00eda a\u00fan.</p></div>';
     updateProgress();
     return;
   }
-
   container.innerHTML = filtered.map(ch => renderChapter(ch)).join('');
   updateProgress();
   updateNav();
@@ -903,108 +1186,94 @@ function renderChapter(ch) {
   const isOpen = openChapters.has(ch.id);
   const tab = activeTab[ch.id] || 'preguntas';
   const reflCount = s.reflections.length;
-
-  return `
-<div class="chapter-card ${s.completed ? 'completed' : ''} ${isOpen ? 'open' : ''}" data-id="${ch.id}">
-  <div class="chapter-header" data-toggle="${ch.id}">
-    <div class="ch-num">${ch.num}</div>
-    <div class="ch-info">
-      <div class="ch-tag">${ch.tag}</div>
-      <div class="ch-title">${ch.title}</div>
-      ${ch.subtitle ? `<div class="ch-sub">${ch.subtitle}</div>` : ''}
-      <div class="ch-author">${ch.author}</div>
-    </div>
-    <div class="ch-toggle">
-      <span class="ch-status-badge">${s.completed ? '✓ Listo' : (reflCount > 0 ? `${reflCount} reflexión${reflCount>1?'es':''}` : 'Pendiente')}</span>
-      <span class="ch-arrow">▾</span>
-    </div>
-  </div>
-  <div class="chapter-body">
-    <div class="tab-row">
-      <button class="tab-btn ${tab==='preguntas'?'active':''}" data-tab="preguntas" data-cid="${ch.id}">Preguntas</button>
-      <button class="tab-btn ${tab==='reflexiones'?'active':''}" data-tab="reflexiones" data-cid="${ch.id}">Reflexiones${reflCount>0?` (${reflCount})`:''}</button>
-      <button class="tab-btn ${tab==='pasajes'?'active':''}" data-tab="pasajes" data-cid="${ch.id}">Pasajes</button>
-    </div>
-
-    <!-- PREGUNTAS -->
-    <div class="tab-pane ${tab==='preguntas'?'active':''}" data-pane="preguntas" data-cid="${ch.id}">
-      <ul class="questions-list">
-        ${ch.questions.map((q,i) => `
-          <li class="question-item">
-            <span class="q-num">${i+1}.</span>
-            <span class="q-text">${q}</span>
-          </li>`).join('')}
-      </ul>
-    </div>
-
-    <!-- REFLEXIONES -->
-    <div class="tab-pane ${tab==='reflexiones'?'active':''}" data-pane="reflexiones" data-cid="${ch.id}">
-      <div class="reflections-area" id="refl-list-${ch.id}">
-        ${renderReflections(ch)}
-      </div>
-      ${renderAddForm(ch)}
-    </div>
-
-    <!-- PASAJES -->
-    <div class="tab-pane ${tab==='pasajes'?'active':''}" data-pane="pasajes" data-cid="${ch.id}">
-      <div class="verses-box">
-        <div class="verses-label">Pasajes para profundizar</div>
-        <div class="verses-list">${ch.verses}</div>
-      </div>
-    </div>
-
-    <div class="complete-row">
-      <button class="btn-complete ${s.completed?'undo':''}" data-complete="${ch.id}">
-        ${s.completed ? 'Marcar como pendiente' : '✓ Marcar como completado'}
-      </button>
-      <span class="complete-hint">${s.completed ? 'Este capítulo está marcado como discutido.' : 'Márcalo cuando el grupo haya discutido este capítulo.'}</span>
-    </div>
-  </div>
-</div>`;
+  return (
+    '<div class="chapter-card ' + (s.completed ? 'completed' : '') + ' ' + (isOpen ? 'open' : '') + '" data-id="' + ch.id + '">' +
+    '<div class="chapter-header" data-toggle="' + ch.id + '">' +
+    '<div class="ch-num">' + ch.num + '</div>' +
+    '<div class="ch-info">' +
+    '<div class="ch-tag">' + ch.tag + '</div>' +
+    '<div class="ch-title">' + ch.title + '</div>' +
+    (ch.subtitle ? '<div class="ch-sub">' + ch.subtitle + '</div>' : '') +
+    '<div class="ch-author">' + ch.author + '</div>' +
+    '</div>' +
+    '<div class="ch-toggle">' +
+    '<span class="ch-status-badge">' + (s.completed ? '\u2713 Listo' : (reflCount > 0 ? reflCount + ' reflexi\u00f3n' + (reflCount>1?'es':'') : 'Pendiente')) + '</span>' +
+    '<span class="ch-arrow">\u25be</span>' +
+    '</div></div>' +
+    '<div class="chapter-body">' +
+    '<div class="tab-row">' +
+    '<button class="tab-btn ' + (tab==='preguntas'?'active':'') + '" data-tab="preguntas" data-cid="' + ch.id + '">Preguntas</button>' +
+    '<button class="tab-btn ' + (tab==='reflexiones'?'active':'') + '" data-tab="reflexiones" data-cid="' + ch.id + '">Reflexiones' + (reflCount>0?' ('+reflCount+')':'') + '</button>' +
+    '<button class="tab-btn ' + (tab==='pasajes'?'active':'') + '" data-tab="pasajes" data-cid="' + ch.id + '">Pasajes</button>' +
+    '</div>' +
+    '<div class="tab-pane ' + (tab==='preguntas'?'active':'') + '" data-cid="' + ch.id + '">' +
+    '<ul class="questions-list">' +
+    ch.questions.map((q,i) => '<li class="question-item"><span class="q-num">'+(i+1)+'.</span><span class="q-text">'+q+'</span></li>').join('') +
+    '</ul></div>' +
+    '<div class="tab-pane ' + (tab==='reflexiones'?'active':'') + '" data-cid="' + ch.id + '">' +
+    '<div class="reflections-area" id="refl-list-' + ch.id + '">' + renderReflections(ch) + '</div>' +
+    renderAddForm(ch) +
+    '</div>' +
+    '<div class="tab-pane ' + (tab==='pasajes'?'active':'') + '" data-cid="' + ch.id + '">' +
+    '<div class="verses-box"><div class="verses-label">Pasajes para profundizar</div><div class="verses-list">' + ch.verses + '</div></div>' +
+    '</div>' +
+    '<div class="complete-row">' +
+    '<button class="btn-complete ' + (s.completed?'undo':'') + '" data-complete="' + ch.id + '">' +
+    (s.completed ? 'Marcar como pendiente' : '\u2713 Marcar como completado') +
+    '</button>' +
+    '<span class="complete-hint">' + (s.completed ? 'Este cap\u00edtulo est\u00e1 marcado como discutido.' : 'M\u00e1rcalo cuando el grupo haya discutido este cap\u00edtulo.') + '</span>' +
+    '</div></div></div>'
+  );
 }
 
 function renderReflections(ch) {
   const s = getChapterState(ch.id);
   if (!s.reflections || s.reflections.length === 0) {
-    return `<div class="empty-state" style="padding:1.2rem 0">
-      <div class="icon">✍️</div>
-      <p>Aún no hay reflexiones. ¡Sé el primero en compartir!</p>
-    </div>`;
+    return '<div class="empty-state" style="padding:1.2rem 0"><div class="icon">\u270d\ufe0f</div><p>A\u00fan no hay reflexiones. \u00a1S\u00e9 el primero en compartir!</p></div>';
   }
-  return s.reflections.map(r => `
-    <div class="reflection-entry" data-rid="${r.id}" data-cid="${ch.id}">
-      <div class="reflection-meta">
-        <span class="reflection-author">${escHtml(r.author)}</span>
-        <span class="reflection-date">${r.date}</span>
-      </div>
-      <div class="reflection-text">${escHtml(r.text)}</div>
-      ${r.questionIdx !== undefined && r.questionIdx !== '' ?
-        `<div class="reflection-question-ref">En respuesta a la pregunta ${parseInt(r.questionIdx)+1}: "${ch.questions[r.questionIdx]?.substring(0,60)}…"</div>` : ''}
-      <button class="delete-btn" data-delete="${r.id}" data-cid="${ch.id}" title="Eliminar reflexión">✕</button>
-    </div>`).join('');
+  return s.reflections.map(r => {
+    const canDelete = currentUser && (isAdmin() || currentUser.username === r.author);
+    return (
+      '<div class="reflection-entry" data-rid="' + r.id + '" data-cid="' + ch.id + '">' +
+      '<div class="reflection-meta">' +
+      '<span class="reflection-author">' + escHtml(r.author) + '</span>' +
+      '<span class="reflection-date">' + r.date + '</span>' +
+      '</div>' +
+      '<div class="reflection-text">' + escHtml(r.text) + '</div>' +
+      (r.questionIdx !== undefined && r.questionIdx !== null && r.questionIdx !== '' ?
+        '<div class="reflection-question-ref">En respuesta a la pregunta ' + (parseInt(r.questionIdx)+1) + ': "' + (ch.questions[r.questionIdx] || '').substring(0,60) + '\u2026"</div>' : '') +
+      (canDelete ? '<button class="delete-btn" data-delete="' + r.id + '" data-cid="' + ch.id + '" title="Eliminar">\u2715</button>' : '') +
+      '</div>'
+    );
+  }).join('');
 }
 
 function renderAddForm(ch) {
-  return `
-    <div class="add-reflection">
-      <label>Nombre del participante</label>
-      <input type="text" id="author-${ch.id}" placeholder="Ej. Juan, Hermano Marcos…" autocomplete="off">
-      <label>Pregunta de reflexión (opcional)</label>
-      <select id="qsel-${ch.id}">
-        <option value="">— Reflexión general sobre el capítulo —</option>
-        ${ch.questions.map((q,i)=>`<option value="${i}">${i+1}. ${q.substring(0,60)}…</option>`).join('')}
-      </select>
-      <label>Reflexión</label>
-      <textarea id="text-${ch.id}" placeholder="Escribe aquí la reflexión, comentario u oración del participante…"></textarea>
-      <button class="btn-add" data-save="${ch.id}">Guardar reflexión</button>
-    </div>`;
+  if (!currentUser) {
+    return '<div class="add-reflection" style="text-align:center;padding:1.2rem">' +
+      '<p style="font-size:13px;color:#6b6258;margin-bottom:0.75rem">Inicia sesi\u00f3n para agregar una reflexi\u00f3n.</p>' +
+      '<button class="btn-add btn-login-inline">Iniciar sesi\u00f3n</button></div>';
+  }
+  return (
+    '<div class="add-reflection">' +
+    '<p style="font-size:12px;color:#8b6914;margin-bottom:0.75rem">Agregando como <strong>' + escHtml(currentUser.username) + '</strong></p>' +
+    '<label>Pregunta de reflexi\u00f3n (opcional)</label>' +
+    '<select id="qsel-' + ch.id + '">' +
+    '<option value="">\u2014 Reflexi\u00f3n general sobre el cap\u00edtulo \u2014</option>' +
+    ch.questions.map((q,i) => '<option value="'+i+'">'+(i+1)+'. '+q.substring(0,60)+'\u2026</option>').join('') +
+    '</select>' +
+    '<label>Reflexi\u00f3n</label>' +
+    '<textarea id="text-' + ch.id + '" placeholder="Escribe aqu\u00ed tu reflexi\u00f3n\u2026"></textarea>' +
+    '<button class="btn-add" data-save="' + ch.id + '">Guardar reflexi\u00f3n</button>' +
+    '</div>'
+  );
 }
 
 function updateProgress() {
   const total = CHAPTERS.length;
   const done = CHAPTERS.filter(ch => getChapterState(ch.id).completed).length;
-  document.getElementById('progress-label').textContent = `${done} / ${total}`;
-  document.getElementById('progress-bar').style.width = `${(done/total)*100}%`;
+  document.getElementById('progress-label').textContent = done + ' / ' + total;
+  document.getElementById('progress-bar').style.width = ((done/total)*100) + '%';
 }
 
 function updateNav() {
@@ -1015,89 +1284,78 @@ function updateNav() {
 
 // ── EVENTS ───────────────────────────────────────────────────────────────────
 function attachEvents() {
-  // Toggle open/close
   document.querySelectorAll('[data-toggle]').forEach(el => {
     el.addEventListener('click', () => {
       const id = el.dataset.toggle;
       if (openChapters.has(id)) openChapters.delete(id);
       else openChapters.add(id);
       renderAll();
-      // scroll into view
       setTimeout(() => {
-        const card = document.querySelector(`[data-id="${id}"]`);
+        const card = document.querySelector('[data-id="' + id + '"]');
         if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 50);
     });
   });
 
-  // Tabs
   document.querySelectorAll('[data-tab]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', e => {
       e.stopPropagation();
       activeTab[btn.dataset.cid] = btn.dataset.tab;
       renderAll();
     });
   });
 
-  // Save reflection
+  document.querySelectorAll('.btn-login-inline').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); showAuthModal(); });
+  });
+
   document.querySelectorAll('[data-save]').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (!currentUser) { showAuthModal(); return; }
       const id = btn.dataset.save;
-      const author = document.getElementById(`author-${id}`).value.trim();
-      const text = document.getElementById(`text-${id}`).value.trim();
-      const qIdx = document.getElementById(`qsel-${id}`).value;
-      if (!author || !text) {
-        alert('Por favor ingresa tu nombre y una reflexión.');
-        return;
-      }
+      const text = document.getElementById('text-' + id).value.trim();
+      const qIdx = document.getElementById('qsel-' + id).value;
+      if (!text) { alert('Por favor escribe una reflexi\u00f3n.'); return; }
       const now = new Date();
       const dateStr = now.toLocaleDateString('es', {day:'2-digit', month:'short', year:'numeric'});
-      const reflection = {
+      saveReflection(id, {
         id: Date.now().toString(),
-        author, text, date: dateStr,
+        author: currentUser.username,
+        text, date: dateStr,
         questionIdx: qIdx !== '' ? parseInt(qIdx) : null
-      };
-      saveReflection(id, reflection);
+      });
       activeTab[id] = 'reflexiones';
-      document.getElementById(`author-${id}`).value = '';
-      document.getElementById(`text-${id}`).value = '';
-      document.getElementById(`qsel-${id}`).value = '';
+      document.getElementById('text-' + id).value = '';
+      document.getElementById('qsel-' + id).value = '';
     });
   });
 
-  // Delete reflection
   document.querySelectorAll('[data-delete]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', e => {
       e.stopPropagation();
-      if (!confirm('¿Eliminar esta reflexión?')) return;
-      const rid = btn.dataset.delete;
-      const cid = btn.dataset.cid;
-      deleteReflection(cid, rid);
+      if (!currentUser) return;
+      if (!confirm('\u00bfEliminar esta reflexi\u00f3n?')) return;
+      deleteReflection(btn.dataset.cid, btn.dataset.delete);
     });
   });
 
-  // Mark complete
   document.querySelectorAll('[data-complete]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', e => {
       e.stopPropagation();
+      if (!currentUser) { showAuthModal(); return; }
       const id = btn.dataset.complete;
-      const s = getChapterState(id);
-      saveChapterCompleted(id, !s.completed);
+      saveChapterCompleted(id, !getChapterState(id).completed);
     });
   });
 }
 
-// Nav filter
 document.querySelectorAll('.nav-pill').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentFilter = btn.dataset.filter;
-    renderAll();
-  });
+  btn.addEventListener('click', () => { currentFilter = btn.dataset.filter; renderAll(); });
 });
 
-// Helpers
 function escHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function hideLoading() {
@@ -1106,7 +1364,10 @@ function hideLoading() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+loadSession();
+startUsersListener();
 startListening();
+updateUserBar();
 </script>
 </body>
 </html>
