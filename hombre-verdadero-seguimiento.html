@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hombre Verdadero — Seguimiento de Lectura</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --ink:        #1a1612;
+    --parchment:  #f7f3ec;
+    --warm-mid:   #e8e0d0;
+    --gold:       #8b6914;
+    --gold-light: #c9972a;
+    --stone:      #6b6258;
+    --ember:      #7a2d1e;
+    --leaf:       #2d5a27;
+    --completed:  #e8f0e7;
+    --radius:     6px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--parchment);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    color: var(--parchment);
+    padding: 2rem 1.5rem 1.5rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 39px,
+      rgba(255,255,255,0.03) 40px
+    );
+    pointer-events: none;
+  }
+  header .eyebrow {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-bottom: 0.6rem;
+  }
+  header h1 {
+    font-family: 'EB Garamond', serif;
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+  header .subtitle {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: rgba(247,243,236,0.65);
+    margin-top: 0.4rem;
+  }
+  header .meta {
+    margin-top: 1rem;
+    font-size: 12px;
+    color: rgba(247,243,236,0.4);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── PROGRESS BANNER ── */
+  .progress-bar-wrap {
+    background: var(--ink);
+    padding: 0 1.5rem 1.2rem;
+    text-align: center;
+  }
+  .progress-track {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 12px;
+    color: rgba(247,243,236,0.5);
+  }
+  .progress-fill-outer {
+    width: 160px;
+    height: 4px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill-inner {
+    height: 100%;
+    background: var(--gold-light);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+  #progress-label { color: var(--gold-light); font-weight: 600; }
+
+  /* ── NAV ── */
+  nav {
+    display: flex;
+    gap: 0.3rem;
+    padding: 0.75rem 1.5rem;
+    background: white;
+    border-bottom: 1px solid var(--warm-mid);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  nav .nav-pill {
+    flex-shrink: 0;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid var(--warm-mid);
+    background: transparent;
+    color: var(--stone);
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
+  nav .nav-pill:hover { border-color: var(--gold); color: var(--gold); }
+  nav .nav-pill.active { background: var(--ink); color: var(--parchment); border-color: var(--ink); }
+  nav .nav-pill.done { border-color: var(--leaf); color: var(--leaf); }
+  nav .nav-pill.done.active { background: var(--leaf); color: white; }
+
+  /* ── CHAPTER LIST ── */
+  main { padding: 1.5rem; max-width: 760px; margin: 0 auto; }
+
+  .chapter-card {
+    background: white;
+    border: 1px solid var(--warm-mid);
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .chapter-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+  .chapter-card.completed { border-color: #b8d4b5; }
+  .chapter-card.completed .chapter-header { background: var(--completed); }
+
+  .chapter-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 1rem 1.1rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .chapter-header:hover { background: #fafafa; }
+  .chapter-card.completed .chapter-header:hover { background: #deeadc; }
+
+  .ch-num {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    background: var(--ink);
+    color: var(--parchment);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+  }
+  .chapter-card.completed .ch-num { background: var(--leaf); }
+
+  .ch-info { flex: 1; min-width: 0; }
+  .ch-tag {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone);
+    margin-bottom: 2px;
+  }
+  .ch-title {
+    font-family: 'EB Garamond', serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--ink);
+  }
+  .ch-sub {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: var(--stone);
+    margin-top: 1px;
+  }
+  .ch-author { font-size: 11px; color: var(--stone); margin-top: 4px; }
+
+  .ch-toggle {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    margin-top: 2px;
+  }
+  .ch-status-badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--stone);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--warm-mid);
+    background: var(--parchment);
+  }
+  .chapter-card.completed .ch-status-badge {
+    color: var(--leaf);
+    border-color: #b8d4b5;
+    background: #f0f7ef;
+  }
+  .ch-arrow {
+    font-size: 16px;
+    color: var(--stone);
+    transition: transform 0.25s;
+    line-height: 1;
+  }
+  .chapter-card.open .ch-arrow { transform: rotate(180deg); }
+
+  /* ── CHAPTER BODY ── */
+  .chapter-body {
+    display: none;
+    padding: 0 1.1rem 1.2rem;
+    border-top: 1px solid var(--warm-mid);
+  }
+  .chapter-card.open .chapter-body { display: block; }
+
+  /* Tabs */
+  .tab-row {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.75rem 0 0.6rem;
+    border-bottom: 1px solid var(--warm-mid);
+    margin-bottom: 1rem;
+  }
+  .tab-btn {
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--stone);
+    transition: all 0.15s;
+  }
+  .tab-btn.active { background: var(--ink); color: white; }
+  .tab-btn:hover:not(.active) { background: var(--warm-mid); }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* Questions */
+  .questions-list { list-style: none; }
+  .question-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid #f0ece4;
+    align-items: flex-start;
+  }
+  .question-item:last-child { border-bottom: none; }
+  .q-num {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold);
+    width: 20px;
+    margin-top: 2px;
+  }
+  .q-text {
+    font-family: 'EB Garamond', serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--ink);
+    flex: 1;
+  }
+
+  /* Passajes */
+  .verses-box {
+    background: var(--parchment);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 4px 4px 0;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+  }
+  .verses-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.4rem;
+  }
+  .verses-list {
+    font-family: 'EB Garamond', serif;
+    font-size: 0.95rem;
+    color: var(--stone);
+    line-height: 1.7;
+  }
+
+  /* Reflexiones grupales */
+  .reflections-area { }
+  .reflection-entry {
+    background: var(--parchment);
+    border: 1px solid var(--warm-mid);
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.75rem;
+    position: relative;
+  }
+  .reflection-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .reflection-author {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.04em;
+  }
+  .reflection-date {
+    font-size: 11px;
+    color: var(--stone);
+  }
+  .reflection-text {
+    font-family: 'EB Garamond', serif;
+    font-size: 1rem;
+    line-height: 1.55;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+  .reflection-question-ref {
+    font-size: 10px;
+    color: var(--stone);
+    margin-top: 0.4rem;
+    font-style: italic;
+  }
+  .delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 14px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: color 0.15s;
+  }
+  .delete-btn:hover { color: var(--ember); }
+
+  .add-reflection {
+    background: white;
+    border: 1.5px dashed var(--warm-mid);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-top: 0.5rem;
+  }
+  .add-reflection label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--stone);
+    margin-bottom: 0.3rem;
+    margin-top: 0.6rem;
+  }
+  .add-reflection label:first-child { margin-top: 0; }
+  .add-reflection input,
+  .add-reflection select,
+  .add-reflection textarea {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    border: 1.5px solid var(--warm-mid);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--parchment);
+    outline: none;
+    transition: border-color 0.15s;
+    resize: vertical;
+  }
+  .add-reflection input:focus,
+  .add-reflection select:focus,
+  .add-reflection textarea:focus {
+    border-color: var(--gold);
+  }
+  .add-reflection textarea { min-height: 80px; }
+  .btn-add {
+    margin-top: 0.75rem;
+    padding: 0.5rem 1.2rem;
+    background: var(--ink);
+    color: var(--parchment);
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-add:hover { background: #2e2820; }
+
+  /* Mark complete */
+  .complete-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--warm-mid);
+    margin-top: 0.5rem;
+  }
+  .btn-complete {
+    padding: 0.45rem 1rem;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    border: 1.5px solid var(--leaf);
+    color: var(--leaf);
+    background: transparent;
+  }
+  .btn-complete:hover { background: var(--leaf); color: white; }
+  .btn-complete.undo { border-color: var(--stone); color: var(--stone); }
+  .btn-complete.undo:hover { background: var(--stone); color: white; }
+  .complete-hint { font-size: 11px; color: var(--stone); }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--stone);
+  }
+  .empty-state .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  .empty-state p { font-size: 13px; line-height: 1.5; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 2rem 1rem;
+    font-size: 11px;
+    color: var(--stone);
+    border-top: 1px solid var(--warm-mid);
+    margin-top: 1rem;
+  }
+
+  @media (max-width: 480px) {
+    main { padding: 0.75rem; }
+    .chapter-header { padding: 0.85rem 0.9rem; }
+    .chapter-body { padding: 0 0.9rem 1rem; }
+    nav { padding: 0.5rem 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Grupo de Lectura y Oración</div>
+  <h1>Hombre Verdadero</h1>
+  <div class="subtitle">Nathan Busenitz — editor general</div>
+  <div class="meta">Seguimiento de reflexiones por capítulo</div>
+</header>
+
+<div class="progress-bar-wrap">
+  <div class="progress-track">
+    <span id="progress-label">0 / 16</span>
+    <div class="progress-fill-outer">
+      <div class="progress-fill-inner" id="progress-bar" style="width:0%"></div>
+    </div>
+    <span>capítulos completados</span>
+  </div>
+</div>
+
+<nav id="main-nav">
+  <button class="nav-pill active" data-filter="all">Todos</button>
+  <button class="nav-pill" data-filter="pending">Pendientes</button>
+  <button class="nav-pill" data-filter="done">Completados</button>
+</nav>
+
+<div id="loading-screen" style="text-align:center;padding:3rem 1rem;color:#6b6258;font-family:serif;font-size:1.1rem;"><div style="font-size:2rem;margin-bottom:0.75rem;">📖</div>Conectando con la base de datos del grupo…</div>
+
+<main id="chapters-container"></main>
+
+<footer>
+  Hombre Verdadero · Editorial Portavoz · Reflexiones almacenadas localmente en este dispositivo
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+
+const CHAPTERS = [
+  {
+    id: "prologo",
+    num: "P",
+    tag: "Prólogo · Prefacio",
+    title: "El hombre verdadero camina con Dios",
+    subtitle: "La clave para convertirte en un hombre piadoso",
+    author: "John MacArthur · Nathan Busenitz",
+    questions: [
+      "¿Qué significa para ti, en lo práctico, «caminar con Dios» en tu vida diaria?",
+      "MacArthur menciona que los hombres fieles llamaron a otros a caminar con Dios. ¿A quién estás llamando tú?",
+      "Según Busenitz, el libro no trata en última instancia sobre los hombres sino sobre Dios. ¿De qué modo eso cambia tu expectativa al leerlo?",
+      "¿Qué rasgo de carácter, según estos textos introductorios, es la marca del verdadero hombre? ¿Lo ves en tu propia vida?",
+      "Busenitz afirma que mantenernos enfocados en Cristo es «la clave» para ser hombres piadosos. ¿Qué prácticas concretas te ayudan a mantener ese enfoque?",
+      "Lee los pasajes de profundización. ¿Cuál te habló más y por qué?"
+    ],
+    verses: "Génesis 5:24; Génesis 6:9; Génesis 17:1; Deuteronomio 8:6; Josué 22:5; 1 Reyes 2:1-3; Salmos 119:2-3; Gálatas 5:16, 22-25; Efesios 4:1; Colosenses 1:9-10; Hebreos 11:5; 12:2"
+  },
+  {
+    id: "cap1",
+    num: "1",
+    tag: "Capítulo 1",
+    title: "El hombre verdadero anda por fe",
+    subtitle: "Lecciones de la vida de Abraham",
+    author: "Nathan Busenitz",
+    questions: [
+      "¿Qué fue lo más interesante que aprendiste sobre la vida de Abraham en este capítulo?",
+      "En tu parecer, ¿qué evento en la vida de Abraham demostró de mejor forma su fe?",
+      "Según el ejemplo de Abraham, ¿cuál es la clave para ejercer fe ante un futuro incierto?",
+      "¿Tu fe se caracteriza principalmente por confiar en el plan, la justicia, los tiempos y la provisión de Dios? ¿Por qué sí o por qué no?",
+      "¿Hay algún área en tu vida que te impida ser descrito como un hombre que anda por fe? ¿Qué harás al respecto?",
+      "¿Cuál es la relación entre la fe y la salvación?",
+      "Lee los «Pasajes bíblicos para profundizar más». ¿De qué forma cada pasaje afirma, aclara o aplica las verdades del capítulo?"
+    ],
+    verses: "Génesis 15:6; Salmos 32:10-11; Salmos 56:3-4; Proverbios 3:5-6; Proverbios 28:25-26; Habacuc 2:4; Romanos 5:1-2; Efesios 2:8-10; Hebreos 11:1-2, 6; Hebreos 11:8-19"
+  },
+  {
+    id: "cap2",
+    num: "2",
+    tag: "Capítulo 2",
+    title: "El hombre verdadero encuentra su satisfacción en Dios",
+    subtitle: "Lecciones de la vida de Salomón",
+    author: "Rick Holland",
+    questions: [
+      "¿De qué manera la vida de Salomón ilustra el peligro de buscar satisfacción en cosas distintas a Dios?",
+      "¿En qué áreas de tu vida buscas satisfacción fuera de Dios? ¿Qué consecuencias has visto?",
+      "¿Qué aprendiste del libro de Eclesiastés sobre la futilidad de las riquezas, el placer y la fama?",
+      "¿Cómo puede un hombre moderno, rodeado de abundancia, aprender a encontrar su gozo real solo en Dios?",
+      "¿Qué prácticas espirituales te ayudan a cultivar una satisfacción profunda en Dios cada día?",
+      "Lee los pasajes de profundización. ¿Qué verdades confirman o amplifican lo aprendido en este capítulo?"
+    ],
+    verses: "Salmos 16:11; Salmos 73:25-26; Eclesiastés 1:2; 2:1-11; 12:13-14; Filipenses 4:11-13; 1 Timoteo 6:6-10; Hebreos 13:5"
+  },
+  {
+    id: "cap3",
+    num: "3",
+    tag: "Capítulo 3",
+    title: "El hombre verdadero atesora la Palabra de Dios",
+    subtitle: "Lecciones de la vida de Josías",
+    author: "Tom Patton",
+    questions: [
+      "¿Qué te llamó la atención de la respuesta de Josías cuando encontró el libro de la Ley? ¿Por qué fue tan poderosa?",
+      "¿Cómo describes tu propia relación con la Biblia? ¿La atesoras genuinamente o la tratas con indiferencia?",
+      "¿Qué diferencia hace en tu vida diaria pasar tiempo regular y deliberado en la Palabra de Dios?",
+      "Josías actuó de inmediato sobre lo que leyó. ¿Cuál es la última verdad bíblica que te impulsó a actuar? ¿Actuaste?",
+      "¿Qué obstáculos concretos impiden que un hombre tesorice la Escritura hoy? ¿Cómo los superarías?",
+      "¿Qué pasaje de los de profundización te desafía más a atesorar la Palabra?"
+    ],
+    verses: "Deuteronomio 17:18-20; Josué 1:8; Salmos 1:1-3; Salmos 119:9-11, 97-105; Proverbios 4:20-22; 2 Timoteo 3:16-17; Santiago 1:22-25"
+  },
+  {
+    id: "cap4",
+    num: "4",
+    tag: "Capítulo 4",
+    title: "El hombre verdadero ora con valentía",
+    subtitle: "Lecciones de la vida de Elías",
+    author: "Justin McKitterick",
+    questions: [
+      "¿Qué caracterizó la oración de Elías en el monte Carmelo? ¿Qué podemos aprender de su confianza?",
+      "¿Cómo describirías tu vida de oración? ¿Es valiente, persistente, confiada en la soberanía de Dios?",
+      "Elías también experimentó el agotamiento espiritual después de la victoria. ¿Cómo te relacionas con eso?",
+      "¿Qué cosas concretas temes pedir a Dios? ¿Qué te detiene?",
+      "¿De qué forma la oración de intercesión por otros ha transformado tu fe personal?",
+      "Lee los pasajes de profundización. ¿Cómo definen el tipo de oración valiente que Dios desea de nosotros?"
+    ],
+    verses: "1 Reyes 18:36-37; Salmos 5:1-3; Mateo 7:7-11; Lucas 18:1-8; Romanos 8:26-27; Efesios 6:18; Santiago 5:16-18; 1 Juan 5:14-15"
+  },
+  {
+    id: "cap5",
+    num: "5",
+    tag: "Capítulo 5",
+    title: "El hombre verdadero disfruta de la adoración",
+    subtitle: "Lecciones de los salmistas de Israel",
+    author: "John Martin",
+    questions: [
+      "¿Cuál es la diferencia entre asistir a un culto de adoración y realmente disfrutar de la adoración a Dios?",
+      "¿Qué te enseñaron los Salmos sobre la honestidad en la adoración, incluso en el sufrimiento?",
+      "¿Qué barreras te impiden a ti o a los hombres en general disfrutar la adoración corporativa?",
+      "Los salmistas adoraban en medio del dolor. ¿Cómo se relaciona eso con tu experiencia de adoración en momentos difíciles?",
+      "¿De qué manera la adoración transforma al adorador? ¿Lo has experimentado?",
+      "¿Cuál de los Salmos mencionados resonó más contigo y por qué?"
+    ],
+    verses: "Salmos 22:1-3; Salmos 34:1-3; Salmos 63:1-5; Salmos 100; Salmos 103:1-5; Juan 4:23-24; Romanos 12:1; Hebreos 13:15"
+  },
+  {
+    id: "cap6",
+    num: "6",
+    tag: "Capítulo 6",
+    title: "El hombre verdadero huye de la tentación",
+    subtitle: "Lecciones de la vida de Timoteo",
+    author: "Andrew Gutierrez",
+    questions: [
+      "¿Qué instrucciones específicas recibió Timoteo de Pablo sobre cómo manejar la tentación? ¿Cuál te impactó más?",
+      "¿Por qué el texto dice «huir» y no simplemente «resistir»? ¿Qué implica eso para ti?",
+      "¿Cuáles son tus principales puntos de vulnerabilidad ante la tentación? ¿Qué medidas prácticas estás tomando?",
+      "¿Cómo impacta la rendición de cuentas (con otro hombre) en tu lucha contra la tentación?",
+      "¿De qué manera la meditación en la Palabra y la oración fortalecen tu capacidad de huir de la tentación?",
+      "Lee los pasajes de profundización y comparte qué promesa o mandamiento te da más fuerza."
+    ],
+    verses: "1 Corintios 10:13; 2 Timoteo 2:22; Santiago 1:13-15; 4:7; 1 Pedro 5:8-9; 1 Juan 2:15-17; Efesios 6:10-18"
+  },
+  {
+    id: "cap7",
+    num: "7",
+    tag: "Capítulo 7",
+    title: "El hombre verdadero se arrepiente de su pecado",
+    subtitle: "Lecciones de la vida de David",
+    author: "Mark Zhakevich",
+    questions: [
+      "¿Cómo describe el Salmo 51 la naturaleza del verdadero arrepentimiento? ¿Qué lo hace auténtico?",
+      "David pecó gravemente pero fue llamado «hombre conforme al corazón de Dios». ¿Cómo reconcilias eso?",
+      "¿Cuál es la diferencia entre culpa, vergüenza y arrepentimiento genuino? ¿Cómo los distingues en tu vida?",
+      "¿Qué te cuesta más al arrepentirte: reconocer el pecado, confesarlo ante otros, o cambiar el comportamiento?",
+      "¿Cómo puede el arrepentimiento genuino fortalecer en lugar de debilitar la masculinidad de un hombre?",
+      "Lee los pasajes de profundización. ¿Qué imagen del carácter de Dios en el perdón te consuela más?"
+    ],
+    verses: "Salmos 32:1-5; Salmos 51:1-17; Proverbios 28:13; Isaías 55:7; 1 Juan 1:9; 2 Corintios 7:10; Hechos 3:19"
+  },
+  {
+    id: "cap8",
+    num: "8",
+    tag: "Capítulo 8",
+    title: "El hombre verdadero rehúsa claudicar",
+    subtitle: "Lecciones de la vida de Daniel",
+    author: "Kelly Wright",
+    questions: [
+      "¿Qué presiones enfrentó Daniel para comprometer su fe? ¿Cómo se comparan con las que tú enfrentas?",
+      "¿Qué área de tu vida te resulta más difícil de mantener sin ceder ante la presión cultural?",
+      "Daniel no hizo un espectáculo de su fe, pero tampoco la ocultó. ¿Qué equilibrio estás buscando?",
+      "¿Cómo fortalece tu carácter el hecho de comprometerte con convicciones antes de que llegue la prueba?",
+      "¿A qué «leones» te enfrentas tú hoy en el trabajo, la familia o la sociedad? ¿Cómo los estás manejando?",
+      "¿Qué lección de la vida de Daniel quieres aplicar esta semana? ¿Cómo lo harás?"
+    ],
+    verses: "Daniel 1:8; 3:16-18; 6:10; Proverbios 4:23; Mateo 10:32-33; Romanos 1:16; 1 Corintios 15:58; Apocalipsis 2:10"
+  },
+  {
+    id: "cap9",
+    num: "9",
+    tag: "Capítulo 9",
+    title: "El hombre verdadero dirige con valor",
+    subtitle: "Lecciones de la vida de Nehemías",
+    author: "Jonathan Rourke",
+    questions: [
+      "¿Qué rasgos del liderazgo de Nehemías te parecieron más sorprendentes o inspiradores?",
+      "Nehemías oró, planeó y actuó. ¿Cuál de esos tres elementos te resulta más difícil en tu rol de liderazgo?",
+      "¿En qué esfera de tu vida (hogar, iglesia, trabajo) estás llamado a liderar con más valor?",
+      "Nehemías enfrentó oposición constante pero no se detuvo. ¿Qué te detiene a ti cuando enfrentas resistencia?",
+      "¿Cómo equilibra Nehemías la firmeza con la humildad? ¿Es eso posible sin la gracia de Dios?",
+      "¿Qué «muro roto» en tu entorno necesita que tú tomes la iniciativa de reconstruir?"
+    ],
+    verses: "Nehemías 1:4-11; 2:17-18; 4:14; 6:3; Josué 1:9; Proverbios 28:1; 1 Corintios 16:13; Efesios 5:25-27; 1 Pedro 5:2-3"
+  },
+  {
+    id: "cap10",
+    num: "10",
+    tag: "Capítulo 10",
+    title: "El hombre verdadero ama a su esposa",
+    subtitle: "Lecciones de la vida de Pedro",
+    author: "Rich Gregory",
+    questions: [
+      "¿Qué tipo de amor describe Pedro en 1 Pedro 3 para el marido? ¿Cómo contrasta con el mundo?",
+      "Pedro describe al marido como «coheredero de la gracia de la vida». ¿Cómo cambia esa perspectiva tu trato con tu esposa?",
+      "¿Cuáles son las formas concretas en que expresas amor, honor y comprensión hacia tu esposa?",
+      "¿Cuál es la conexión entre tu relación con tu esposa y tu vida de oración, según el texto?",
+      "Para los que no son casados: ¿cómo aplica este capítulo a su preparación o a su forma de relacionarse con las mujeres en general?",
+      "¿Qué cambio específico quieres hacer esta semana en cómo amas a tu esposa (o te preparas para serlo)?"
+    ],
+    verses: "Génesis 2:24; Proverbios 5:18-19; Efesios 5:25-33; Colosenses 3:19; 1 Pedro 3:7; 1 Corintios 13:4-7"
+  },
+  {
+    id: "cap11",
+    num: "11",
+    tag: "Capítulo 11",
+    title: "El hombre verdadero pastorea a su familia",
+    subtitle: "Lecciones de Efesios 5–6",
+    author: "Jim Pile",
+    questions: [
+      "¿Qué implica ser «cabeza» del hogar según Efesios 5? ¿Cómo lo distingues del autoritarismo?",
+      "¿Qué herramientas espirituales concretas estás usando para discipular a tus hijos?",
+      "¿Cómo defines «pastorear» a tu familia en lo espiritual, emocional y relacional?",
+      "¿Cuál es el mayor obstáculo que enfrentas para ejercer un liderazgo espiritual en el hogar?",
+      "Para los solteros: ¿cómo te estás preparando para pastorear a una familia futura o cómo puedes pastorear en tu familia de origen?",
+      "¿Qué ha cambiado en tu familia cuando has priorizado la dirección espiritual del hogar?"
+    ],
+    verses: "Deuteronomio 6:4-9; Salmos 78:4-7; Proverbios 22:6; Efesios 5:25-6:4; Colosenses 3:18-21; 1 Timoteo 3:4-5"
+  },
+  {
+    id: "cap12",
+    num: "12",
+    tag: "Capítulo 12",
+    title: "El hombre verdadero trabaja duro",
+    subtitle: "Lecciones del libro de Proverbios",
+    author: "Austin Duncan",
+    questions: [
+      "¿Qué imagen del trabajo presenta Proverbios? ¿Cómo contrasta con la cultura del mínimo esfuerzo?",
+      "¿En qué áreas de tu trabajo o ministerio necesitas mayor disciplina y diligencia?",
+      "¿Cómo integras tu fe con tu ética de trabajo? ¿Ven tus colegas a Cristo en tu laboriosidad?",
+      "Proverbios advierte contra la pereza. ¿Qué formas de pereza —visible o sutil— luchas con eliminar?",
+      "¿Cómo equilibras trabajar duro con descansar bien, sin caer en el extremo del workahólico o del perezoso?",
+      "¿Cómo puedes usar tu trabajo como una plataforma de mayordomía y testimonio del evangelio?"
+    ],
+    verses: "Proverbios 6:6-11; 10:4-5; 12:24; 13:4; 14:23; 18:9; 22:29; Colosenses 3:23-24; 2 Tesalonicenses 3:10-12"
+  },
+  {
+    id: "cap13",
+    num: "13",
+    tag: "Capítulo 13",
+    title: "El hombre verdadero ama a sus enemigos",
+    subtitle: "Lecciones de la vida de Eliseo",
+    author: "Jesse Johnson",
+    questions: [
+      "¿Qué episodio de la vida de Eliseo te resultó más poderoso en relación con el amor por los enemigos?",
+      "¿Tienes «enemigos» —personas que te han herido, traicionado o te desean mal— hoy? ¿Cómo los estás tratando?",
+      "Jesús dijo que amar al enemigo es lo que distingue al discípulo. ¿Lo ves reflejado en tu vida?",
+      "¿Qué papel juega el perdón en poder amar genuinamente a quienes te han causado daño?",
+      "¿Cómo cambia este capítulo la manera en que ves a las personas con quienes tienes conflicto?",
+      "Lee los pasajes de profundización. ¿Qué instrucción te resulta más difícil de cumplir y por qué?"
+    ],
+    verses: "2 Reyes 6:20-23; Proverbios 25:21-22; Mateo 5:43-48; Lucas 6:27-35; Romanos 12:17-21; Efesios 4:31-32"
+  },
+  {
+    id: "cap14",
+    num: "14",
+    tag: "Capítulo 14",
+    title: "El hombre verdadero comparte el evangelio",
+    subtitle: "Lecciones del libro de los Hechos",
+    author: "Kevin Edwards",
+    questions: [
+      "¿Qué caracterizó la valentía evangelística de los apóstoles en el libro de Hechos? ¿Qué los impulsaba?",
+      "¿Cuándo fue la última vez que compartiste el evangelio intencionalmente con alguien? ¿Qué ocurrió?",
+      "¿Qué miedos o excusas usas más frecuentemente para no evangelizar? ¿Son válidos?",
+      "¿Cómo el ejemplo de Pablo en Hechos cambia tu visión sobre la evangelización en tu contexto cotidiano?",
+      "¿A quién tienes en mente que necesita escuchar el evangelio? ¿Cuál es tu próximo paso?",
+      "¿De qué manera tu comunidad de hombres puede comprometerse a evangelizar juntos?"
+    ],
+    verses: "Hechos 1:8; 4:12, 29-31; 17:16-17; Romanos 1:16; 1 Corintios 9:16; 2 Timoteo 4:5; 1 Pedro 3:15"
+  },
+  {
+    id: "cap15",
+    num: "15",
+    tag: "Capítulo 15",
+    title: "El hombre verdadero ama a la iglesia",
+    subtitle: "Lecciones de la vida de Pablo",
+    author: "Brent Small",
+    questions: [
+      "¿Qué te revela la relación de Pablo con sus iglesias sobre lo que significa amar a la Iglesia de Cristo?",
+      "¿Cómo describes tu compromiso personal con tu iglesia local? ¿Es profundo y costoso, o superficial y conveniente?",
+      "¿Qué dones, tiempo y recursos estás poniendo al servicio de tu comunidad eclesiástica?",
+      "Pablo sufrió mucho por la iglesia. ¿Qué sacrificios concretos estás dispuesto a hacer por tu iglesia?",
+      "¿Cómo podría cambiar tu iglesia si cada hombre en ella amara a la congregación como Pablo amaba a las suyas?",
+      "Al terminar el libro: ¿Cuál de los 15 rasgos del hombre verdadero necesitas trabajar más? ¿Cuál es tu plan?"
+    ],
+    verses: "Hechos 20:28; 1 Corintios 12:27; Efesios 4:11-16; 5:25-27; Filipenses 1:27; Hebreos 10:24-25; 1 Pedro 4:10"
+  },
+  {
+    id: "apendice",
+    num: "A",
+    tag: "Apéndice",
+    title: "El hombre verdadero busca la pureza",
+    subtitle: "",
+    author: "Bill Shannon",
+    questions: [
+      "¿Por qué crees que la pureza sexual fue tratada aparte, como apéndice? ¿Qué dice eso de su importancia?",
+      "¿Cuál es la diferencia entre «no cometer adulterio» y «buscar la pureza» activamente?",
+      "¿Qué hábitos, entornos o relaciones necesitas cambiar para proteger tu pureza?",
+      "¿Cómo te ayuda o desafía la perspectiva de tu grupo de hombres en este tema?",
+      "¿De qué manera la pureza sexual está conectada con tu vida de oración, adoración y liderazgo familiar?",
+      "Al cerrar el libro: ¿Cuál es tu compromiso de grupo en relación con la pureza y la rendición de cuentas?"
+    ],
+    verses: "Job 31:1; Salmos 101:3; Mateo 5:28; 1 Corintios 6:18-20; Gálatas 5:19-21; Efesios 5:3; 1 Tesalonicenses 4:3-7; 1 Pedro 2:11"
+  }
+];
+
+// ── FIREBASE ─────────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCb3sxxkCkv2J7liZ7UMBXA-Yrj9Es3dWc",
+  authDomain: "hombre-verdadero.firebaseapp.com",
+  databaseURL: "https://hombre-verdadero-default-rtdb.firebaseio.com",
+  projectId: "hombre-verdadero",
+  storageBucket: "hombre-verdadero.firebasestorage.app",
+  messagingSenderId: "1018486149390",
+  appId: "1:1018486149390:web:48c72ffebd2c9bb8af075f",
+  measurementId: "G-7RNHXHZ0T2"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ROOT = 'hombre_verdadero';
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let state = {};
+
+function getChapterState(id) {
+  if (!state[id]) state[id] = { completed: false, reflections: [] };
+  return state[id];
+}
+
+function saveChapterCompleted(chapterId, value) {
+  db.ref(`${ROOT}/${chapterId}/completed`).set(value);
+}
+
+function saveReflection(chapterId, reflection) {
+  db.ref(`${ROOT}/${chapterId}/reflections/${reflection.id}`).set(reflection);
+}
+
+function deleteReflection(chapterId, reflectionId) {
+  db.ref(`${ROOT}/${chapterId}/reflections/${reflectionId}`).remove();
+}
+
+// Escuchar cambios en tiempo real
+function startListening() {
+  db.ref(ROOT).on('value', snapshot => {
+    const data = snapshot.val() || {};
+    // Normalizar: reflections como array
+    state = {};
+    for (const chId in data) {
+      const ch = data[chId];
+      const reflObj = ch.reflections || {};
+      state[chId] = {
+        completed: ch.completed || false,
+        reflections: Object.values(reflObj)
+      };
+    }
+    renderAll();
+    hideLoading();
+  });
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+let currentFilter = 'all';
+let openChapters = new Set();
+let activeTab = {}; // chapterId -> tab name
+
+function renderAll() {
+  const container = document.getElementById('chapters-container');
+  const filtered = CHAPTERS.filter(ch => {
+    const s = getChapterState(ch.id);
+    if (currentFilter === 'done') return s.completed;
+    if (currentFilter === 'pending') return !s.completed;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📖</div><p>No hay capítulos en esta categoría aún.</p></div>`;
+    updateProgress();
+    return;
+  }
+
+  container.innerHTML = filtered.map(ch => renderChapter(ch)).join('');
+  updateProgress();
+  updateNav();
+  attachEvents();
+}
+
+function renderChapter(ch) {
+  const s = getChapterState(ch.id);
+  const isOpen = openChapters.has(ch.id);
+  const tab = activeTab[ch.id] || 'preguntas';
+  const reflCount = s.reflections.length;
+
+  return `
+<div class="chapter-card ${s.completed ? 'completed' : ''} ${isOpen ? 'open' : ''}" data-id="${ch.id}">
+  <div class="chapter-header" data-toggle="${ch.id}">
+    <div class="ch-num">${ch.num}</div>
+    <div class="ch-info">
+      <div class="ch-tag">${ch.tag}</div>
+      <div class="ch-title">${ch.title}</div>
+      ${ch.subtitle ? `<div class="ch-sub">${ch.subtitle}</div>` : ''}
+      <div class="ch-author">${ch.author}</div>
+    </div>
+    <div class="ch-toggle">
+      <span class="ch-status-badge">${s.completed ? '✓ Listo' : (reflCount > 0 ? `${reflCount} reflexión${reflCount>1?'es':''}` : 'Pendiente')}</span>
+      <span class="ch-arrow">▾</span>
+    </div>
+  </div>
+  <div class="chapter-body">
+    <div class="tab-row">
+      <button class="tab-btn ${tab==='preguntas'?'active':''}" data-tab="preguntas" data-cid="${ch.id}">Preguntas</button>
+      <button class="tab-btn ${tab==='reflexiones'?'active':''}" data-tab="reflexiones" data-cid="${ch.id}">Reflexiones${reflCount>0?` (${reflCount})`:''}</button>
+      <button class="tab-btn ${tab==='pasajes'?'active':''}" data-tab="pasajes" data-cid="${ch.id}">Pasajes</button>
+    </div>
+
+    <!-- PREGUNTAS -->
+    <div class="tab-pane ${tab==='preguntas'?'active':''}" data-pane="preguntas" data-cid="${ch.id}">
+      <ul class="questions-list">
+        ${ch.questions.map((q,i) => `
+          <li class="question-item">
+            <span class="q-num">${i+1}.</span>
+            <span class="q-text">${q}</span>
+          </li>`).join('')}
+      </ul>
+    </div>
+
+    <!-- REFLEXIONES -->
+    <div class="tab-pane ${tab==='reflexiones'?'active':''}" data-pane="reflexiones" data-cid="${ch.id}">
+      <div class="reflections-area" id="refl-list-${ch.id}">
+        ${renderReflections(ch)}
+      </div>
+      ${renderAddForm(ch)}
+    </div>
+
+    <!-- PASAJES -->
+    <div class="tab-pane ${tab==='pasajes'?'active':''}" data-pane="pasajes" data-cid="${ch.id}">
+      <div class="verses-box">
+        <div class="verses-label">Pasajes para profundizar</div>
+        <div class="verses-list">${ch.verses}</div>
+      </div>
+    </div>
+
+    <div class="complete-row">
+      <button class="btn-complete ${s.completed?'undo':''}" data-complete="${ch.id}">
+        ${s.completed ? 'Marcar como pendiente' : '✓ Marcar como completado'}
+      </button>
+      <span class="complete-hint">${s.completed ? 'Este capítulo está marcado como discutido.' : 'Márcalo cuando el grupo haya discutido este capítulo.'}</span>
+    </div>
+  </div>
+</div>`;
+}
+
+function renderReflections(ch) {
+  const s = getChapterState(ch.id);
+  if (!s.reflections || s.reflections.length === 0) {
+    return `<div class="empty-state" style="padding:1.2rem 0">
+      <div class="icon">✍️</div>
+      <p>Aún no hay reflexiones. ¡Sé el primero en compartir!</p>
+    </div>`;
+  }
+  return s.reflections.map(r => `
+    <div class="reflection-entry" data-rid="${r.id}" data-cid="${ch.id}">
+      <div class="reflection-meta">
+        <span class="reflection-author">${escHtml(r.author)}</span>
+        <span class="reflection-date">${r.date}</span>
+      </div>
+      <div class="reflection-text">${escHtml(r.text)}</div>
+      ${r.questionIdx !== undefined && r.questionIdx !== '' ?
+        `<div class="reflection-question-ref">En respuesta a la pregunta ${parseInt(r.questionIdx)+1}: "${ch.questions[r.questionIdx]?.substring(0,60)}…"</div>` : ''}
+      <button class="delete-btn" data-delete="${r.id}" data-cid="${ch.id}" title="Eliminar reflexión">✕</button>
+    </div>`).join('');
+}
+
+function renderAddForm(ch) {
+  return `
+    <div class="add-reflection">
+      <label>Nombre del participante</label>
+      <input type="text" id="author-${ch.id}" placeholder="Ej. Juan, Hermano Marcos…" autocomplete="off">
+      <label>Pregunta de reflexión (opcional)</label>
+      <select id="qsel-${ch.id}">
+        <option value="">— Reflexión general sobre el capítulo —</option>
+        ${ch.questions.map((q,i)=>`<option value="${i}">${i+1}. ${q.substring(0,60)}…</option>`).join('')}
+      </select>
+      <label>Reflexión</label>
+      <textarea id="text-${ch.id}" placeholder="Escribe aquí la reflexión, comentario u oración del participante…"></textarea>
+      <button class="btn-add" data-save="${ch.id}">Guardar reflexión</button>
+    </div>`;
+}
+
+function updateProgress() {
+  const total = CHAPTERS.length;
+  const done = CHAPTERS.filter(ch => getChapterState(ch.id).completed).length;
+  document.getElementById('progress-label').textContent = `${done} / ${total}`;
+  document.getElementById('progress-bar').style.width = `${(done/total)*100}%`;
+}
+
+function updateNav() {
+  document.querySelectorAll('.nav-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === currentFilter);
+  });
+}
+
+// ── EVENTS ───────────────────────────────────────────────────────────────────
+function attachEvents() {
+  // Toggle open/close
+  document.querySelectorAll('[data-toggle]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.toggle;
+      if (openChapters.has(id)) openChapters.delete(id);
+      else openChapters.add(id);
+      renderAll();
+      // scroll into view
+      setTimeout(() => {
+        const card = document.querySelector(`[data-id="${id}"]`);
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    });
+  });
+
+  // Tabs
+  document.querySelectorAll('[data-tab]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      activeTab[btn.dataset.cid] = btn.dataset.tab;
+      renderAll();
+    });
+  });
+
+  // Save reflection
+  document.querySelectorAll('[data-save]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.save;
+      const author = document.getElementById(`author-${id}`).value.trim();
+      const text = document.getElementById(`text-${id}`).value.trim();
+      const qIdx = document.getElementById(`qsel-${id}`).value;
+      if (!author || !text) {
+        alert('Por favor ingresa tu nombre y una reflexión.');
+        return;
+      }
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('es', {day:'2-digit', month:'short', year:'numeric'});
+      const reflection = {
+        id: Date.now().toString(),
+        author, text, date: dateStr,
+        questionIdx: qIdx !== '' ? parseInt(qIdx) : null
+      };
+      saveReflection(id, reflection);
+      activeTab[id] = 'reflexiones';
+      document.getElementById(`author-${id}`).value = '';
+      document.getElementById(`text-${id}`).value = '';
+      document.getElementById(`qsel-${id}`).value = '';
+    });
+  });
+
+  // Delete reflection
+  document.querySelectorAll('[data-delete]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!confirm('¿Eliminar esta reflexión?')) return;
+      const rid = btn.dataset.delete;
+      const cid = btn.dataset.cid;
+      deleteReflection(cid, rid);
+    });
+  });
+
+  // Mark complete
+  document.querySelectorAll('[data-complete]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.complete;
+      const s = getChapterState(id);
+      saveChapterCompleted(id, !s.completed);
+    });
+  });
+}
+
+// Nav filter
+document.querySelectorAll('.nav-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentFilter = btn.dataset.filter;
+    renderAll();
+  });
+});
+
+// Helpers
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function hideLoading() {
+  const el = document.getElementById('loading-screen');
+  if (el) el.remove();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+startListening();
+</script>
+</body>
+</html>
