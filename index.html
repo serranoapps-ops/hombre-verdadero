@@ -367,18 +367,25 @@
   }
   .delete-btn {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    background: none;
-    border: none;
+    top: 10px;
+    right: 10px;
+    background: #f5ece9;
+    border: 1px solid #e8c5bb;
     cursor: pointer;
-    color: #ccc;
-    font-size: 14px;
-    padding: 2px 4px;
-    border-radius: 3px;
-    transition: color 0.15s;
+    color: var(--ember);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    transition: all 0.18s;
+    letter-spacing: 0.03em;
+    line-height: 1.4;
   }
-  .delete-btn:hover { color: var(--ember); }
+  .delete-btn:hover {
+    background: var(--ember);
+    color: white;
+    border-color: var(--ember);
+  }
 
   .add-reflection {
     background: white;
@@ -1242,7 +1249,7 @@ function renderReflections(ch) {
       '<div class="reflection-text">' + escHtml(r.text) + '</div>' +
       (r.questionIdx !== undefined && r.questionIdx !== null && r.questionIdx !== '' ?
         '<div class="reflection-question-ref">En respuesta a la pregunta ' + (parseInt(r.questionIdx)+1) + ': "' + (ch.questions[r.questionIdx] || '').substring(0,60) + '\u2026"</div>' : '') +
-      (canDelete ? '<button class="delete-btn" data-delete="' + r.id + '" data-cid="' + ch.id + '" title="Eliminar">\u2715</button>' : '') +
+      (canDelete ? '<button class="delete-btn" data-delete="' + r.id + '" data-cid="' + ch.id + '" title="Eliminar reflexi\u00f3n">Eliminar</button>' : '') +
       '</div>'
     );
   }).join('');
