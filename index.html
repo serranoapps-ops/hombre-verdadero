@@ -559,6 +559,7 @@
       <div class="progress-fill-inner" id="progress-bar" style="width:0%"></div>
     </div>
     <span>capítulos completados</span>
+    <button id="btn-export-pdf" onclick="exportPDF()" style="margin-left:1rem;padding:0.3rem 0.9rem;border-radius:20px;border:1.5px solid var(--gold-light);background:transparent;color:var(--gold-light);font-size:11px;font-weight:600;cursor:pointer;letter-spacing:0.05em;transition:all 0.18s;" onmouseover="this.style.background='#c9972a';this.style.color='#1a1612'" onmouseout="this.style.background='transparent';this.style.color='#c9972a'">↓ Exportar PDF</button>
   </div>
 </div>
 
@@ -578,6 +579,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 // ── ADMIN ────────────────────────────────────────────────────────────────────
@@ -1368,6 +1370,176 @@ function escHtml(str) {
 function hideLoading() {
   const el = document.getElementById('loading-screen');
   if (el) el.remove();
+}
+
+// ── EXPORT PDF ───────────────────────────────────────────────────────────────
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const marginL = 18;
+  const marginR = 18;
+  const contentW = pageW - marginL - marginR;
+  let y = 0;
+
+  function checkPage(needed) {
+    if (y + needed > pageH - 18) { doc.addPage(); y = 20; }
+  }
+
+  function wrapText(text, x, startY, maxW, lineH, fontSize) {
+    doc.setFontSize(fontSize);
+    const lines = doc.splitTextToSize(text, maxW);
+    lines.forEach(line => {
+      checkPage(lineH);
+      doc.text(line, x, startY + (y - startY));
+      y += lineH;
+    });
+    return y;
+  }
+
+  // ── COVER PAGE ──
+  doc.setFillColor(26, 22, 18);
+  doc.rect(0, 0, pageW, pageH, 'F');
+
+  doc.setTextColor(201, 151, 42);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('GRUPO DE LECTURA Y ORACIÓN', pageW / 2, 70, { align: 'center' });
+
+  doc.setTextColor(247, 243, 236);
+  doc.setFontSize(28);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Hombre Verdadero', pageW / 2, 95, { align: 'center' });
+
+  doc.setTextColor(180, 160, 120);
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'italic');
+  doc.text('Nathan Busenitz — editor general', pageW / 2, 108, { align: 'center' });
+
+  doc.setTextColor(100, 90, 80);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const now = new Date();
+  doc.text('Exportado el ' + now.toLocaleDateString('es', {day:'2-digit', month:'long', year:'numeric'}), pageW / 2, 175, { align: 'center' });
+
+  // Count stats
+  let totalRefls = 0;
+  let completedCount = 0;
+  CHAPTERS.forEach(ch => {
+    const s = getChapterState(ch.id);
+    if (s.completed) completedCount++;
+    totalRefls += s.reflections.length;
+  });
+  doc.setTextColor(140, 105, 20);
+  doc.setFontSize(10);
+  doc.text(completedCount + ' de ' + CHAPTERS.length + ' capítulos completados  ·  ' + totalRefls + ' reflexiones registradas', pageW / 2, 185, { align: 'center' });
+
+  // ── CHAPTERS ──
+  CHAPTERS.forEach(ch => {
+    const s = getChapterState(ch.id);
+    if (!s.reflections || s.reflections.length === 0) return;
+
+    doc.addPage();
+    y = 20;
+
+    // Chapter header bar
+    doc.setFillColor(26, 22, 18);
+    doc.rect(0, 0, pageW, 14, 'F');
+    doc.setTextColor(201, 151, 42);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text(ch.tag.toUpperCase(), marginL, 9);
+    doc.setTextColor(180, 160, 120);
+    doc.text(s.completed ? '✓ Completado' : 'Pendiente', pageW - marginR, 9, { align: 'right' });
+
+    y = 24;
+
+    // Chapter title
+    doc.setTextColor(26, 22, 18);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    const titleLines = doc.splitTextToSize(ch.title, contentW);
+    titleLines.forEach(line => { doc.text(line, marginL, y); y += 7; });
+
+    if (ch.subtitle) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(107, 98, 88);
+      const subLines = doc.splitTextToSize(ch.subtitle, contentW);
+      subLines.forEach(line => { doc.text(line, marginL, y); y += 5.5; });
+    }
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(139, 105, 20);
+    doc.text(ch.author, marginL, y);
+    y += 8;
+
+    // Divider
+    doc.setDrawColor(201, 151, 42);
+    doc.setLineWidth(0.4);
+    doc.line(marginL, y, pageW - marginR, y);
+    y += 7;
+
+    // Reflections
+    s.reflections.forEach((r, idx) => {
+      checkPage(20);
+
+      // Reflection header
+      doc.setFillColor(247, 243, 236);
+      doc.roundedRect(marginL, y - 4, contentW, 8, 1, 1, 'F');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(26, 22, 18);
+      doc.text(r.author, marginL + 3, y + 1);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(107, 98, 88);
+      doc.text(r.date, pageW - marginR - 3, y + 1, { align: 'right' });
+      y += 7;
+
+      // Question ref
+      if (r.questionIdx !== undefined && r.questionIdx !== null) {
+        const qText = ch.questions[r.questionIdx] || '';
+        checkPage(8);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(139, 105, 20);
+        const qRef = 'Pregunta ' + (parseInt(r.questionIdx) + 1) + ': ' + qText.substring(0, 70) + (qText.length > 70 ? '…' : '');
+        const qLines = doc.splitTextToSize(qRef, contentW - 4);
+        qLines.forEach(line => { checkPage(5); doc.text(line, marginL + 3, y); y += 4.5; });
+        y += 1;
+      }
+
+      // Reflection text
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(26, 22, 18);
+      const textLines = doc.splitTextToSize(r.text, contentW - 4);
+      textLines.forEach(line => { checkPage(6); doc.text(line, marginL + 3, y); y += 5.5; });
+      y += 6;
+
+      // Separator between reflections
+      if (idx < s.reflections.length - 1) {
+        checkPage(4);
+        doc.setDrawColor(220, 214, 200);
+        doc.setLineWidth(0.2);
+        doc.line(marginL + 10, y - 3, pageW - marginR - 10, y - 3);
+      }
+    });
+  });
+
+  // Page numbers
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 2; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(160, 150, 140);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Hombre Verdadero  ·  ' + i + ' / ' + totalPages, pageW / 2, pageH - 8, { align: 'center' });
+  }
+
+  doc.save('hombre-verdadero-reflexiones.pdf');
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
