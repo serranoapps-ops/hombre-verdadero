@@ -40,21 +40,10 @@
     position: relative;
     overflow: hidden;
   }
-  header::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 39px,
-      rgba(255,255,255,0.03) 40px
-    );
-    pointer-events: none;
-  }
+
   header .eyebrow {
     font-family: 'Inter', sans-serif;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -63,7 +52,7 @@
   }
   header h1 {
     font-family: 'EB Garamond', serif;
-    font-size: clamp(2rem, 6vw, 3.2rem);
+    font-size: clamp(2.6rem, 7vw, 4rem);
     font-weight: 600;
     letter-spacing: -0.01em;
     line-height: 1.1;
@@ -71,7 +60,7 @@
   header .subtitle {
     font-family: 'EB Garamond', serif;
     font-style: italic;
-    font-size: 1.05rem;
+    font-size: 1.25rem;
     color: rgba(247,243,236,0.65);
     margin-top: 0.4rem;
   }
@@ -189,16 +178,16 @@
 
   .ch-info { flex: 1; min-width: 0; }
   .ch-tag {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--stone);
-    margin-bottom: 2px;
+    margin-bottom: 3px;
   }
   .ch-title {
     font-family: 'EB Garamond', serif;
-    font-size: 1.15rem;
+    font-size: 1.4rem;
     font-weight: 600;
     line-height: 1.25;
     color: var(--ink);
@@ -206,11 +195,11 @@
   .ch-sub {
     font-family: 'EB Garamond', serif;
     font-style: italic;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
     color: var(--stone);
-    margin-top: 1px;
+    margin-top: 2px;
   }
-  .ch-author { font-size: 11px; color: var(--stone); margin-top: 4px; }
+  .ch-author { font-size: 13px; color: var(--stone); margin-top: 5px; }
 
   .ch-toggle {
     flex-shrink: 0;
@@ -221,7 +210,7 @@
     margin-top: 2px;
   }
   .ch-status-badge {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -297,7 +286,7 @@
   }
   .q-text {
     font-family: 'EB Garamond', serif;
-    font-size: 1rem;
+    font-size: 1.15rem;
     line-height: 1.5;
     color: var(--ink);
     flex: 1;
@@ -321,7 +310,7 @@
   }
   .verses-list {
     font-family: 'EB Garamond', serif;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     color: var(--stone);
     line-height: 1.7;
   }
@@ -354,7 +343,7 @@
   }
   .reflection-text {
     font-family: 'EB Garamond', serif;
-    font-size: 1rem;
+    font-size: 1.1rem;
     line-height: 1.55;
     color: var(--ink);
     white-space: pre-wrap;
